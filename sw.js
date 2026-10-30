@@ -1,4 +1,4 @@
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `plantilla-${CACHE_VERSION}`;
 
 const FILES_TO_CACHE = [

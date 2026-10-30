@@ -34,12 +34,14 @@ h1{margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-.02em}
 .tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);padding:6px 12px calc(6px + env(safe-area-inset-bottom))}
 .tabbar .wrap{display:flex;padding:0}.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;font-size:.68rem;font-weight:700;color:var(--mut)}.tab svg{width:22px;height:22px}.tab.on{color:var(--pri)}
 .hd{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}.hd h2{margin:0;font-size:1.05rem;text-transform:capitalize;text-align:center}
-.ov{position:fixed;inset:0;z-index:50;background:rgba(6,20,18,.6);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--card);width:100%;max-width:30rem;border-radius:28px 28px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));max-height:92vh;overflow-y:auto;animation:up .22s ease-out}
+.ov{position:fixed;inset:0;overflow:hidden;z-index:50;background:rgba(6,20,18,.6);backdrop-filter:blur(3px);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--card);width:100%;max-width:30rem;border-radius:28px 28px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));max-height:calc(100% - 10px);overflow-y:auto;overscroll-behavior:contain;animation:up .22s ease-out}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
 .sheet h3{margin:0;font-size:1.15rem}.sheet .sub{color:var(--mut);font-size:.8rem;margin-bottom:12px;text-transform:capitalize}
 input{font-size:16px;width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:14px;padding:12px 14px;outline:0;min-width:0}input:focus{border-color:var(--pri)}
-.hrs{width:92px;text-align:center;font-weight:800;flex:none}
+.t{width:54px;text-align:center;font-weight:800;flex:none;padding:12px 4px}.tu{color:var(--mut);font-size:.78rem;font-weight:700}.tr{display:flex;align-items:center;gap:4px;flex:none}
+.st{display:flex;gap:6px;margin:0 0 14px}.st button{flex:1;padding:8px 4px;border-radius:10px;background:var(--bg);color:var(--mut);font-size:.72rem;font-weight:800}.st button.on{background:var(--soft);color:var(--pri)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{padding:10px 14px;border-radius:99px;background:var(--bg);font-weight:700;font-size:.85rem}.chip small{color:var(--mut);font-weight:600}
 .cr{display:flex;gap:8px;align-items:center;margin-bottom:8px}.cr .d{width:62px;font-size:.85rem;font-weight:700;text-transform:capitalize;flex:none}
 .two{display:flex;gap:10px}.two>*{flex:1}
 .btn{width:100%;padding:14px;border-radius:16px;background:var(--pri);color:#fff;font-weight:800}.btn.b{background:#2563eb}.btn.g{background:#16a34a}.btn.s{background:var(--soft);color:var(--pri)}.btn.gr{background:var(--bg);color:var(--mut)}
@@ -58,6 +60,7 @@ label.l{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text
  <div class="hd"><button class="ib" onclick="moveDay(-1)"><i data-lucide="chevron-left"></i></button><h2 id="dayLabel"></h2><button class="ib" onclick="moveDay(1)"><i data-lucide="chevron-right"></i></button></div>
  <button class="link" style="margin-top:-8px" onclick="dayDate=today();renderDay()">Ir a hoy</button>
  <div id="dayList"></div><div class="card row sp" id="dayTot"></div>
+ <button class="btn s" style="margin-top:12px" onclick="openAddP()">+ Añadir persona</button><button class="link" onclick="openEmps()">Gestionar plantilla</button>
 </section>
 <section id="v-week" class="hidden">
  <div class="hd"><button class="ib" onclick="moveWeek(-1)"><i data-lucide="chevron-left"></i></button><h2 id="weekLabel"></h2><button class="ib" onclick="moveWeek(1)"><i data-lucide="chevron-right"></i></button></div>
@@ -79,10 +82,17 @@ label.l{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text
  <div class="sum" id="ew-sum"></div><div id="ew-pay"></div><button class="link" onclick="closeEW()">Cerrar</button>
 </div></div>
 
+<div id="addp" class="ov hidden" onclick="if(event.target===this)closeAddP()"><div class="sheet">
+ <h3>Añadir persona a este día</h3><div class="sub" id="addp-sub"></div>
+ <label class="l" style="margin-top:0">Ya en la plantilla</label><div id="addp-list" class="chips"></div>
+ <label class="l">Persona nueva</label><div class="cr"><input id="newP" placeholder="Nombre"><button class="btn s" style="width:auto;padding:12px 16px" onclick="createAddP()">Añadir</button></div>
+ <button class="link" onclick="closeAddP()">Cerrar</button>
+</div></div>
+
 <div id="emps" class="ov hidden" onclick="if(event.target===this)closeEmps()"><div class="sheet">
  <h3>Empleados y ajustes</h3>
  <label class="l">Precio por hora (para registros nuevos)</label><input id="rateInput" type="number" inputmode="decimal" onchange="setRate(this.value)">
- <label class="l">Empleados</label><div id="empList"></div>
+ <label class="l">Empleados</label><div class="mut" style="margin:0 4px 10px"><b>Fijo</b>: sale siempre en Día. <b>Ocasional</b>: solo cuando lo añades ese día. <b>Archivado</b>: ya no está, pero se conserva su historial.</div><div id="empList"></div>
  <div class="cr"><input id="newEmp" placeholder="Nombre del empleado"><button class="btn s" style="width:auto;padding:12px 16px" onclick="addEmp()">Añadir</button></div>
  <label class="l">Copia de seguridad</label>
  <div class="two"><button class="btn b" id="export-btn">Exportar</button><button class="btn g" id="import-btn">Cargar</button></div>
@@ -104,53 +114,75 @@ const fmtLong=s=>parse(s).toLocaleDateString("es-ES",{weekday:"long",day:"numeri
 const fmtShort=s=>parse(s).toLocaleDateString("es-ES",{day:"numeric",month:"short"});
 const weekLabel=ws=>`${fmtShort(ws)} – ${fmtShort(addDays(ws,6))}`;
 const dayName=s=>parse(s).toLocaleDateString("es-ES",{weekday:"short",day:"numeric"});
-function load(){try{const v=JSON.parse(localStorage.getItem("plantilla_v1"));if(v&&Array.isArray(v.employees))return{employees:v.employees,entries:v.entries||[],advances:v.advances||[],payments:v.payments||{},settings:v.settings||{rate:10}}}catch{}return{employees:[],entries:[],advances:[],payments:{},settings:{rate:10}}}
+// Tiempo: se guarda en minutos (exacto); importe redondeado al céntimo
+const split=m=>[Math.floor(m/60),m%60];
+const fmtM=m=>{const[h,r]=split(m);return h&&r?`${h}h ${pad(r)}min`:h?`${h}h`:`${r}min`};
+const amt=e=>Math.round(e.mins*e.rate*100/60)/100;
+const fixE=e=>{const m=e.mins!=null?Math.round(e.mins):Math.round((e.hours||0)*60);return{...e,mins:m,hours:m/60}};
+const fixP=e=>({...e,status:e.status||(e.active===false?"archived":"fixed")});
+const st=e=>e.status||"fixed";
+function load(){try{const v=JSON.parse(localStorage.getItem("plantilla_v1"));if(v&&Array.isArray(v.employees))return{employees:v.employees.map(fixP),entries:(v.entries||[]).map(fixE),advances:v.advances||[],payments:v.payments||{},settings:v.settings||{rate:10}}}catch{}return{employees:[],entries:[],advances:[],payments:{},settings:{rate:10}}}
 let D=load();const save=()=>localStorage.setItem("plantilla_v1",JSON.stringify(D));
-let tab="day",dayDate=today(),wk=weekStart(today()),openEmp=null;
+let tab="day",dayDate=today(),wk=weekStart(today()),openEmp=null,dayExtra={d:"",ids:new Set()};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const emp=id=>D.employees.find(e=>e.id===id);
 const getEntry=(id,d)=>D.entries.find(e=>e.empId===id&&e.date===d);
 const payKey=(ws,id)=>ws+"|"+id;
 
-// Cálculo de una semana para un empleado
 function calc(ws,id){const we=addDays(ws,6),inW=x=>x.date>=ws&&x.date<=we;
  const es=D.entries.filter(e=>e.empId===id&&inW(e)),ad=D.advances.filter(a=>a.empId===id&&inW(a));
- const hours=es.reduce((s,e)=>s+e.hours,0),gross=es.reduce((s,e)=>s+e.hours*e.rate,0),adv=ad.reduce((s,a)=>s+a.amount,0);
- return{hours,gross,adv,net:gross-adv,es,ad,pay:D.payments[payKey(ws,id)]||null}}
-const weekEmps=ws=>{const we=addDays(ws,6);return D.employees.filter(e=>e.active!==false||D.entries.some(x=>x.empId===e.id&&x.date>=ws&&x.date<=we)||D.advances.some(x=>x.empId===e.id&&x.date>=ws&&x.date<=we))};
+ const mins=es.reduce((s,e)=>s+e.mins,0),gross=es.reduce((s,e)=>s+amt(e),0),adv=ad.reduce((s,a)=>s+a.amount,0);
+ return{mins,gross,adv,net:Math.round((gross-adv)*100)/100,es,ad,pay:D.payments[payKey(ws,id)]||null}}
 
-function setHours(id,date,v){const h=parseFloat(String(v).replace(",","."));let i=D.entries.findIndex(e=>e.empId===id&&e.date===date);
- if(!(h>0)){if(i>=0)D.entries.splice(i,1)}else if(i>=0)D.entries[i].hours=h;else D.entries.push({id:uid(),empId:id,date,hours:h,rate:D.settings.rate});
- save();dayTotal();if(openEmp)renderEW();renderWeek();renderHist()}
+function setMins(id,date,t){const i=D.entries.findIndex(e=>e.empId===id&&e.date===date);
+ if(!(t>0)){if(i>=0)D.entries.splice(i,1)}else if(i>=0){D.entries[i].mins=t;D.entries[i].hours=t/60}else D.entries.push({id:uid(),empId:id,date,mins:t,hours:t/60,rate:D.settings.rate});
+ save();dayTotal();if(openEmp)renderEWsum();renderWeek();renderHist()}
+function tInputs(id,date){const en=getEntry(id,date),[h,m]=split(en?en.mins:0);
+ return `<div class="tr"><input class="t" data-e="${id}" type="number" inputmode="numeric" min="0" max="24" placeholder="0" value="${h||""}" onchange="tCh(this,'${id}','${date}')"><span class="tu">h</span><input class="t" type="number" inputmode="numeric" min="0" placeholder="0" value="${m||""}" onchange="tCh(this,'${id}','${date}')"><span class="tu">min</span></div>`}
+function tCh(el,id,date){const[hi,mi]=el.closest(".tr").querySelectorAll("input");
+ const t=Math.max(0,Math.round((parseInt(hi.value)||0)*60+(parseInt(mi.value)||0)));setMins(id,date,t);const[h,m]=split(t);hi.value=h||"";mi.value=m||""}
 
 // Día
-function renderDay(){$("dayLabel").textContent=fmtLong(dayDate);const act=D.employees.filter(e=>e.active!==false);
- $("dayList").innerHTML=act.map(e=>{const en=getEntry(e.id,dayDate);return `<div class="card e"><div class="grow big">${esc(e.name)}</div><input class="hrs" type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" value="${en?en.hours:""}" onchange="setHours('${e.id}','${dayDate}',this.value)"><span class="mut">h</span></div>`}).join("")||`<div class="empty">Añade a tus empleados con el icono de arriba para empezar.</div>`;
+const dayEmps=()=>{if(dayExtra.d!==dayDate)dayExtra={d:dayDate,ids:new Set()};return D.employees.filter(e=>st(e)==="fixed"||getEntry(e.id,dayDate)||dayExtra.ids.has(e.id))};
+function renderDay(){$("dayLabel").textContent=fmtLong(dayDate);const act=dayEmps();
+ $("dayList").innerHTML=act.map(e=>`<div class="card e"><div class="grow big">${esc(e.name)}</div>${tInputs(e.id,dayDate)}</div>`).join("")||`<div class="empty">${D.employees.length?"No hay nadie fijo hoy.<br>Usa «Añadir persona» para elegir quién ha venido.":"Empieza añadiendo a tu plantilla con el botón de abajo."}</div>`;
  $("dayTot").classList.toggle("hidden",!act.length);dayTotal()}
-function dayTotal(){const es=D.entries.filter(e=>e.date===dayDate);$("dayTot").innerHTML=`<span class="mut">Total del día</span><b>${es.reduce((s,e)=>s+e.hours,0)}h · ${money(es.reduce((s,e)=>s+e.hours*e.rate,0))}</b>`}
+function dayTotal(){const es=D.entries.filter(e=>e.date===dayDate);$("dayTot").innerHTML=`<span class="mut">Total del día</span><b>${fmtM(es.reduce((s,e)=>s+e.mins,0))} · ${money(es.reduce((s,e)=>s+amt(e),0))}</b>`}
 function moveDay(n){dayDate=addDays(dayDate,n);renderDay()}
+// Añadir persona al día
+function openAddP(){const shown=dayEmps().map(e=>e.id),rest=D.employees.filter(e=>!shown.includes(e.id));
+ $("addp-sub").textContent=fmtLong(dayDate);
+ $("addp-list").innerHTML=rest.map(e=>`<button class="chip" onclick="addToDay('${e.id}')">${esc(e.name)} <small>${st(e)==="archived"?"archivado":"ocasional"}</small></button>`).join("")||`<span class="mut">No hay más personas en la plantilla.</span>`;
+ $("newP").value="";$("addp").classList.remove("hidden")}
+function closeAddP(){$("addp").classList.add("hidden")}
+function focusRow(id){renderDay();const el=document.querySelector(`#dayList [data-e="${id}"]`);if(el){el.scrollIntoView({block:"center"});el.focus()}}
+function addToDay(id){dayEmps();dayExtra.ids.add(id);closeAddP();focusRow(id)}
+function createAddP(){const n=$("newP").value.trim();if(!n)return;const e={id:uid(),name:n,status:"fixed"};D.employees.push(e);save();closeAddP();focusRow(e.id)}
 
 // Pagos de la semana
 function status(c){if(!c.pay)return `<span class="pill p">Pendiente</span>`;const ch=Math.abs(c.pay.amount-c.net)>0.005;return `<span class="pill c">Pagado ${c.pay.method==="cash"?"💵":"🏦"}</span>`+(ch?` <span class="pill p">Cambió</span>`:"")}
 function renderWeek(){$("weekLabel").textContent=weekLabel(wk);let pend=0,paid=0;
- const list=weekEmps(wk).map(e=>({e,c:calc(wk,e.id)})).filter(x=>x.c.hours>0||x.c.adv>0||x.c.pay);
+ const list=D.employees.map(e=>({e,c:calc(wk,e.id)})).filter(x=>x.c.mins>0||x.c.adv>0||x.c.pay);
  list.forEach(({c})=>{if(c.pay)paid+=c.pay.amount;else if(c.net>0)pend+=c.net});
  $("w-pend").textContent=money(pend);$("w-paid").textContent=money(paid);
- $("weekList").innerHTML=list.map(({e,c})=>`<div class="card e" onclick="openEW('${e.id}')"><div class="grow"><div class="big">${esc(e.name)}</div><div class="mut">${c.hours}h${c.adv?` · anticipo −${money(c.adv)}`:""}</div><div style="margin-top:4px">${status(c)}</div></div><div class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</div></div>`).join("")||`<div class="empty">No hay horas esta semana.</div>`}
+ $("weekList").innerHTML=list.map(({e,c})=>`<div class="card e" onclick="openEW('${e.id}')"><div class="grow"><div class="big">${esc(e.name)}</div><div class="mut">${fmtM(c.mins)}${c.adv?` · anticipo −${money(c.adv)}`:""}</div><div style="margin-top:4px">${status(c)}</div></div><div class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</div></div>`).join("")||`<div class="empty">No hay horas esta semana.</div>`}
 function moveWeek(n){wk=addDays(wk,7*n);renderWeek()}
 
 // Detalle empleado-semana
 function openEW(id){openEmp=id;renderEW();$("ew").classList.remove("hidden");lucide.createIcons()}
 function closeEW(){openEmp=null;$("ew").classList.add("hidden");renderWeek();renderHist();if(tab==="day")renderDay()}
 function renderEW(){const e=emp(openEmp),c=calc(wk,openEmp);$("ew-title").textContent=e.name;$("ew-sub").textContent="Semana "+weekLabel(wk);
- $("ew-days").innerHTML=Array.from({length:7},(_,i)=>addDays(wk,i)).map(d=>{const en=getEntry(openEmp,d);return `<div class="cr"><span class="d">${dayName(d)}</span><input class="hrs" type="number" inputmode="decimal" step="0.5" min="0" placeholder="0" value="${en?en.hours:""}" onchange="setHours('${openEmp}','${d}',this.value)"><span class="mut grow">${en?`${en.rate}€/h = ${money(en.hours*en.rate)}`:""}</span></div>`}).join("");
+ $("ew-days").innerHTML=Array.from({length:7},(_,i)=>addDays(wk,i)).map(d=>`<div class="cr"><span class="d">${dayName(d)}</span>${tInputs(openEmp,d)}<span class="mut grow" id="a-${d}" style="text-align:right"></span></div>`).join("");
  $("ew-adv").innerHTML=c.ad.map(a=>`<div class="cr"><span class="grow">−${money(a.amount)} <span class="mut">${esc(a.note||"")} · ${fmtShort(a.date)}</span></span><button class="sm del" onclick="delAdv('${a.id}')"><i data-lucide="trash-2"></i></button></div>`).join("")||`<div class="mut" style="margin-bottom:8px">Sin anticipos esta semana.</div>`;
- $("ew-sum").innerHTML=`<div class="row sp"><span>Horas</span><b>${c.hours}h</b></div><div class="row sp"><span>Total bruto</span><b>${money(c.gross)}</b></div><div class="row sp"><span>Anticipos</span><b>−${money(c.adv)}</b></div><div class="row sp" style="font-size:1.15rem"><b>A pagar</b><b class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</b></div>`+(c.net<0?`<div class="mut">Los anticipos superan lo trabajado.</div>`:"");
+ renderEWsum()}
+function renderEWsum(){const c=calc(wk,openEmp);
+ for(let i=0;i<7;i++){const d=addDays(wk,i),en=getEntry(openEmp,d),el=$("a-"+d);if(el)el.textContent=en?money(amt(en)):""}
+ $("ew-sum").innerHTML=`<div class="row sp"><span>Tiempo</span><b>${fmtM(c.mins)}</b></div><div class="row sp"><span>Total bruto</span><b>${money(c.gross)}</b></div><div class="row sp"><span>Anticipos</span><b>−${money(c.adv)}</b></div><div class="row sp" style="font-size:1.15rem"><b>A pagar</b><b class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</b></div>`+(c.net<0?`<div class="mut">Los anticipos superan lo trabajado.</div>`:"");
  $("ew-pay").innerHTML=c.pay?`<div class="sum" style="background:var(--okbg)">Pagado ${money(c.pay.amount)} ${c.pay.method==="cash"?"en efectivo 💵":"por banco 🏦"}${Math.abs(c.pay.amount-c.net)>0.005?`<br><b style="color:var(--warn)">Ojo: ahora debería ser ${money(c.net)}</b>`:""}</div><button class="btn gr" onclick="unpay()">Deshacer pago</button>`
   :c.net>0?`<div class="two"><button class="btn b" onclick="pay('transfer')">Banco 🏦</button><button class="btn g" onclick="pay('cash')">Efectivo 💵</button></div>`:"";
  lucide.createIcons()}
-function pay(m){const c=calc(wk,openEmp);D.payments[payKey(wk,openEmp)]={method:m,amount:c.net,date:today()};save();renderEW()}
-function unpay(){delete D.payments[payKey(wk,openEmp)];save();renderEW()}
+function pay(m){const c=calc(wk,openEmp);D.payments[payKey(wk,openEmp)]={method:m,amount:c.net,date:today()};save();renderEWsum()}
+function unpay(){delete D.payments[payKey(wk,openEmp)];save();renderEWsum()}
 function addAdv(){const a=parseFloat($("advAmt").value.replace(",","."));if(!(a>0))return alert("Indica el importe del anticipo");
  const t=today(),d=(t>=wk&&t<=addDays(wk,6))?t:addDays(wk,6);D.advances.push({id:uid(),empId:openEmp,date:d,amount:a,note:$("advNote").value.trim()});
  $("advAmt").value="";$("advNote").value="";save();renderEW()}
@@ -158,21 +190,22 @@ function delAdv(id){D.advances=D.advances.filter(a=>a.id!==id);save();renderEW()
 
 // Historial
 function renderHist(){const set=new Set([...D.entries,...D.advances].map(x=>weekStart(x.date)));const weeks=[...set].sort().reverse();
- $("histList").innerHTML=weeks.map(ws=>{let net=0,n=0,p=0;D.employees.forEach(e=>{const c=calc(ws,e.id);if(c.hours>0||c.adv>0){n++;net+=c.pay?c.pay.amount:c.net;if(c.pay)p++}});
+ $("histList").innerHTML=weeks.map(ws=>{let net=0,n=0,p=0;D.employees.forEach(e=>{const c=calc(ws,e.id);if(c.mins>0||c.adv>0){n++;net+=c.pay?c.pay.amount:c.net;if(c.pay)p++}});
   return `<div class="card e" onclick="wk='${ws}';go('week')"><div class="grow"><div class="big">${weekLabel(ws)}</div><div class="mut">${n} empleados</div></div><div style="text-align:right"><div class="amt">${money(net)}</div><span class="pill ${p===n?"c":"p"}">${p}/${n} pagados</span></div></div>`}).join("")||`<div class="empty">Aquí irán apareciendo las semanas.</div>`}
 
 function go(t){tab=t;["day","week","hist"].forEach(x=>{$("v-"+x).classList.toggle("hidden",x!==t);$("t-"+x).classList.toggle("on",x===t)});
  if(t==="day")renderDay();if(t==="week")renderWeek();if(t==="hist")renderHist();lucide.createIcons();window.scrollTo(0,0)}
 
-// Empleados y ajustes
+// Plantilla y ajustes
 function openEmps(){$("rateInput").value=D.settings.rate;renderEmps();$("emps").classList.remove("hidden")}
 function closeEmps(){$("emps").classList.add("hidden");go(tab)}
-function renderEmps(){$("empList").innerHTML=D.employees.map((e,i)=>`<div class="cr"><input value="${esc(e.name)}" style="${e.active===false?"opacity:.5":""}" onchange="renameEmp(${i},this.value)"><button class="sm" title="${e.active===false?"Reactivar":"Archivar"}" onclick="toggleEmp(${i})"><i data-lucide="${e.active===false?"rotate-ccw":"archive"}"></i></button><button class="sm del" onclick="delEmp(${i})"><i data-lucide="trash-2"></i></button></div>`).join("")||`<div class="mut" style="margin-bottom:8px">Aún no hay empleados.</div>`;lucide.createIcons()}
-function addEmp(){const n=$("newEmp").value.trim();if(!n)return;D.employees.push({id:uid(),name:n,active:true});$("newEmp").value="";save();renderEmps()}
+const ST=[["fixed","Fijo"],["occasional","Ocasional"],["archived","Archivado"]];
+function renderEmps(){$("empList").innerHTML=D.employees.map((e,i)=>`<div class="cr" style="margin-bottom:6px"><input value="${esc(e.name)}" onchange="renameEmp(${i},this.value)"><button class="sm del" onclick="delEmp(${i})"><i data-lucide="trash-2"></i></button></div><div class="st">${ST.map(([k,l])=>`<button class="${st(e)===k?"on":""}" onclick="setSt(${i},'${k}')">${l}</button>`).join("")}</div>`).join("")||`<div class="mut" style="margin-bottom:8px">Aún no hay empleados.</div>`;lucide.createIcons()}
+function addEmp(){const n=$("newEmp").value.trim();if(!n)return;D.employees.push({id:uid(),name:n,status:"fixed"});$("newEmp").value="";save();renderEmps()}
 function renameEmp(i,v){v=v.trim();if(v)D.employees[i].name=v;save();renderEmps()}
-function toggleEmp(i){D.employees[i].active=D.employees[i].active===false;save();renderEmps()}
+function setSt(i,s){D.employees[i].status=s;save();renderEmps()}
 function delEmp(i){const e=D.employees[i],has=D.entries.some(x=>x.empId===e.id)||D.advances.some(x=>x.empId===e.id);
- if(has){if(confirm(`${e.name} tiene registros, así que no se borra: se archiva y se conserva su historial. ¿Archivar?`)){e.active=false;save();renderEmps()}}
+ if(has){if(confirm(`${e.name} tiene registros, así que no se borra: se archiva y se conserva su historial. ¿Archivar?`)){e.status="archived";save();renderEmps()}}
  else if(confirm(`¿Eliminar a ${e.name}?`)){D.employees.splice(i,1);save();renderEmps()}}
 function setRate(v){const r=parseFloat(String(v).replace(",","."));if(r>0){D.settings.rate=r;save()}else $("rateInput").value=D.settings.rate}
 
@@ -180,8 +213,8 @@ function setRate(v){const r=parseFloat(String(v).replace(",","."));if(r>0){D.set
 $("export-btn").addEventListener("click",()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(D,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download=`plantilla-${today()}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 $("import-btn").addEventListener("click",()=>$("import-input").click());
 function validar(v){const re=/^\d{4}-\d{2}-\d{2}$/;if(!v||!Array.isArray(v.employees)||!Array.isArray(v.entries)||!Array.isArray(v.advances))return null;
- if(!v.employees.every(e=>e&&e.id&&typeof e.name==="string"))return null;if(!v.entries.every(e=>e&&e.empId&&re.test(e.date)&&e.hours>0&&e.rate>=0))return null;if(!v.advances.every(a=>a&&a.empId&&re.test(a.date)&&a.amount>0))return null;
- return{employees:v.employees,entries:v.entries,advances:v.advances,payments:v.payments||{},settings:{rate:(v.settings&&v.settings.rate)||10}}}
+ if(!v.employees.every(e=>e&&e.id&&typeof e.name==="string"))return null;if(!v.entries.every(e=>e&&e.empId&&re.test(e.date)&&(e.mins>0||e.hours>0)&&e.rate>=0))return null;if(!v.advances.every(a=>a&&a.empId&&re.test(a.date)&&a.amount>0))return null;
+ return{employees:v.employees.map(fixP),entries:v.entries.map(fixE),advances:v.advances,payments:v.payments||{},settings:{rate:(v.settings&&v.settings.rate)||10}}}
 $("import-input").addEventListener("change",ev=>{const inp=ev.target,f=inp.files[0];if(!f)return;const r=new FileReader();
  r.onload=x=>{try{const v=validar(JSON.parse(x.target.result));if(!v)return alert("Archivo inválido ❌ No se ha cambiado nada.");
   if(!confirm(`Se reemplazarán todos los datos actuales por los del archivo (${v.employees.length} empleados, ${v.entries.length} registros). ¿Continuar?`))return;
