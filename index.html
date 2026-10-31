@@ -39,6 +39,10 @@ h1{margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-.02em}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
 .sheet h3{margin:0;font-size:1.15rem}.sheet .sub{color:var(--mut);font-size:.8rem;margin-bottom:12px;text-transform:capitalize}
 input{font-size:16px;width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:14px;padding:12px 14px;outline:0;min-width:0}input:focus{border-color:var(--pri)}
+.btn.wa{background:#25d366;margin-top:12px}
+.cg{display:grid;grid-template-columns:repeat(7,1fr) 1.3fr;gap:4px}.cg .w{text-align:center;font-size:.65rem;font-weight:800;color:var(--mut);padding-bottom:2px}
+.cc{aspect-ratio:.8;border-radius:10px;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding-top:5px;font-size:.8rem;font-weight:700}.cc small{font-size:.58rem;font-weight:800;color:var(--pri);margin-top:1px}.cc.on{background:var(--soft)}.cc.today{outline:2px solid var(--pri)}.cc.x{background:none}
+.cp{border-radius:10px;font-size:.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}.cp.p{background:var(--warnbg);color:var(--warn)}.cp.c{background:var(--okbg);color:var(--ok)}
 .mn{display:flex;align-items:center;gap:4px}.plus{font-size:.7rem;font-weight:800;color:var(--pri);background:var(--soft);padding:7px 9px;border-radius:10px;flex:none}.rm{padding:10px 12px;border-radius:12px;background:var(--bg);color:#ef4444;font-size:.78rem;font-weight:800;flex:none}.back{padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--pri);font-size:.78rem;font-weight:800;flex:none}
 .t{width:54px;text-align:center;font-weight:800;flex:none;padding:12px 4px}.tu{color:var(--mut);font-size:.78rem;font-weight:700}.tr{display:flex;align-items:center;gap:4px;flex:none}
 .st{display:flex;gap:6px;margin:0 0 14px}.st button{flex:1;padding:8px 4px;border-radius:10px;background:var(--bg);color:var(--mut);font-size:.72rem;font-weight:800}.st button.on{background:var(--soft);color:var(--pri)}
@@ -63,15 +67,22 @@ label.l{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text
  <div id="dayList"></div><div class="card row sp" id="dayTot"></div>
  <button class="btn s" style="margin-top:12px" onclick="openAddP()">+ Añadir persona</button><button class="link" onclick="openEmps()">Gestionar plantilla</button>
 </section>
+<section id="v-cal" class="hidden">
+ <div class="hd"><button class="ib" onclick="moveCal(-1)"><i data-lucide="chevron-left"></i></button><h2 id="calLabel"></h2><button class="ib" onclick="moveCal(1)"><i data-lucide="chevron-right"></i></button></div>
+ <div class="card"><div class="cg"><div class="w">D</div><div class="w">L</div><div class="w">M</div><div class="w">X</div><div class="w">J</div><div class="w">V</div><div class="w">S</div><div class="w">Pago</div></div><div class="cg" id="calGrid"></div></div>
+ <p class="mut" style="margin:12px 4px">Cada día muestra las horas de todos juntos. Toca un día para ver quién trabajó. En «Pago» ves lo de esa semana: naranja pendiente, verde pagado; tócalo para abrir los pagos.</p>
+</section>
 <section id="v-week" class="hidden">
  <div class="hd"><button class="ib" onclick="moveWeek(-1)"><i data-lucide="chevron-left"></i></button><h2 id="weekLabel"></h2><button class="ib" onclick="moveWeek(1)"><i data-lucide="chevron-right"></i></button></div>
  <div class="hero"><div><small>Por pagar</small><b id="w-pend">0€</b></div><span class="sep"></span><div><small>Pagado</small><b id="w-paid">0€</b></div></div>
  <div id="weekList"></div>
+ <button class="btn wa hidden" id="waBtn" onclick="shareWA()">Enviar resumen por WhatsApp</button>
 </section>
 <section id="v-hist" class="hidden"><div class="hd"><h2>Semanas anteriores</h2></div><div id="histList"></div></section>
 </main>
 <nav class="tabbar"><div class="wrap">
 <button class="tab on" id="t-day" onclick="go('day')"><i data-lucide="calendar-check"></i>Día</button>
+<button class="tab" id="t-cal" onclick="go('cal')"><i data-lucide="calendar-days"></i>Calendario</button>
 <button class="tab" id="t-week" onclick="go('week')"><i data-lucide="wallet"></i>Pagos</button>
 <button class="tab" id="t-hist" onclick="go('hist')"><i data-lucide="history"></i>Historial</button></div></nav>
 
@@ -110,7 +121,7 @@ const parse=s=>new Date(s+"T12:00");
 const today=()=>iso(new Date());
 const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
 const weekStart=s=>addDays(s,-parse(s).getDay());      // semana: domingo -> sábado
-const money=n=>(Math.round(n*100)/100).toString().replace(".",",")+"€";
+const money=n=>{const r=Math.round(n*100)/100;return(Number.isInteger(r)?String(r):r.toFixed(2)).replace(".",",")+"€"};
 const fmtLong=s=>parse(s).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"});
 const fmtShort=s=>parse(s).toLocaleDateString("es-ES",{day:"numeric",month:"short"});
 const weekLabel=ws=>`${fmtShort(ws)} – ${fmtShort(addDays(ws,6))}`;
@@ -162,11 +173,11 @@ function backToList(id){emp(id).status="fixed";save();closeAddP();focusRow(id)}
 function createAddP(){const n=$("newP").value.trim();if(!n)return;const e={id:uid(),name:n,status:"fixed"};D.employees.push(e);save();closeAddP();focusRow(e.id)}
 
 // Pagos de la semana
-function status(c){if(!c.pay)return `<span class="pill p">Pendiente</span>`;const ch=Math.abs(c.pay.amount-c.net)>0.005;return `<span class="pill c">Pagado ${c.pay.method==="cash"?"💵":"🏦"}</span>`+(ch?` <span class="pill p">Cambió</span>`:"")}
+function status(c){if(!c.pay)return `<span class="pill p">Pendiente</span>`;return `<span class="pill c">Pagado</span>`+(Math.abs(c.pay.amount-c.net)>0.005?` <span class="pill p">Cambió</span>`:"")}
 function renderWeek(){$("weekLabel").textContent=weekLabel(wk);let pend=0,paid=0;
  const list=D.employees.map(e=>({e,c:calc(wk,e.id)})).filter(x=>x.c.mins>0||x.c.adv>0||x.c.pay);
  list.forEach(({c})=>{if(c.pay)paid+=c.pay.amount;else if(c.net>0)pend+=c.net});
- $("w-pend").textContent=money(pend);$("w-paid").textContent=money(paid);
+ $("w-pend").textContent=money(pend);$("waBtn").classList.toggle("hidden",!list.length);$("w-paid").textContent=money(paid);
  $("weekList").innerHTML=list.map(({e,c})=>`<div class="card e" onclick="openEW('${e.id}')"><div class="grow"><div class="big">${esc(e.name)}</div><div class="mut">${fmtM(c.mins)}${c.adv?` · anticipo −${money(c.adv)}`:""}</div><div style="margin-top:4px">${status(c)}</div></div><div class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</div></div>`).join("")||`<div class="empty">No hay horas esta semana.</div>`}
 function moveWeek(n){wk=addDays(wk,7*n);renderWeek()}
 
@@ -180,23 +191,44 @@ function renderEW(){const e=emp(openEmp),c=calc(wk,openEmp);$("ew-title").textCo
 function renderEWsum(){const c=calc(wk,openEmp);
  for(let i=0;i<7;i++){const d=addDays(wk,i),en=getEntry(openEmp,d),el=$("a-"+d);if(el)el.textContent=en?money(amt(en)):""}
  $("ew-sum").innerHTML=`<div class="row sp"><span>Tiempo</span><b>${fmtM(c.mins)}</b></div><div class="row sp"><span>Total bruto</span><b>${money(c.gross)}</b></div><div class="row sp"><span>Anticipos</span><b>−${money(c.adv)}</b></div><div class="row sp" style="font-size:1.15rem"><b>A pagar</b><b class="amt" style="${c.net<0?"color:var(--warn)":""}">${money(c.net)}</b></div>`+(c.net<0?`<div class="mut">Los anticipos superan lo trabajado.</div>`:"");
- $("ew-pay").innerHTML=c.pay?`<div class="sum" style="background:var(--okbg)">Pagado ${money(c.pay.amount)} ${c.pay.method==="cash"?"en efectivo 💵":"por banco 🏦"}${Math.abs(c.pay.amount-c.net)>0.005?`<br><b style="color:var(--warn)">Ojo: ahora debería ser ${money(c.net)}</b>`:""}</div><button class="btn gr" onclick="unpay()">Deshacer pago</button>`
-  :c.net>0?`<div class="two"><button class="btn b" onclick="pay('transfer')">Banco 🏦</button><button class="btn g" onclick="pay('cash')">Efectivo 💵</button></div>`:"";
+ $("ew-pay").innerHTML=c.pay?`<div class="sum" style="background:var(--okbg)">Pagado: ${money(c.pay.amount)}${Math.abs(c.pay.amount-c.net)>0.005?`<br><b style="color:var(--warn)">Ojo: ahora debería ser ${money(c.net)}</b>`:""}</div><button class="btn gr" onclick="unpay()">Deshacer pago</button>`
+  :c.net>0?`<button class="btn g" onclick="pay()">Marcar como pagado ✓</button>`:"";
  lucide.createIcons()}
-function pay(m){const c=calc(wk,openEmp);D.payments[payKey(wk,openEmp)]={method:m,amount:c.net,date:today()};save();renderEWsum()}
+function pay(){const c=calc(wk,openEmp);D.payments[payKey(wk,openEmp)]={amount:c.net,date:today()};save();renderEWsum()}
 function unpay(){delete D.payments[payKey(wk,openEmp)];save();renderEWsum()}
 function addAdv(){const a=parseFloat($("advAmt").value.replace(",","."));if(!(a>0))return alert("Indica el importe del anticipo");
  const t=today(),d=(t>=wk&&t<=addDays(wk,6))?t:addDays(wk,6);D.advances.push({id:uid(),empId:openEmp,date:d,amount:a,note:$("advNote").value.trim()});
  $("advAmt").value="";$("advNote").value="";save();renderEW()}
 function delAdv(id){D.advances=D.advances.filter(a=>a.id!==id);save();renderEW()}
 
+// Calendario
+const fmtC=m=>{const[h,r]=split(m);return h&&r?`${h}h${pad(r)}`:h?`${h}h`:`${r}m`};
+let cm=new Date().getMonth(),cy=new Date().getFullYear();
+function moveCal(n){cm+=n;if(cm>11){cm=0;cy++}if(cm<0){cm=11;cy--}renderCal()}
+function renderCal(){$("calLabel").textContent=new Date(cy,cm,1).toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+ const pre=`${cy}-${pad(cm+1)}`,lastIso=iso(new Date(cy,cm+1,0));let ws=weekStart(iso(new Date(cy,cm,1))),h="";
+ for(;ws<=lastIso;ws=addDays(ws,7)){
+  for(let i=0;i<7;i++){const d=addDays(ws,i);if(d.slice(0,7)!==pre){h+=`<div class="cc x"></div>`;continue}
+   const mins=D.entries.filter(e=>e.date===d).reduce((s,e)=>s+e.mins,0);
+   h+=`<div class="cc ${mins?"on":""} ${d===today()?"today":""}" onclick="dayDate='${d}';go('day')">${+d.slice(8)}${mins?`<small>${fmtC(mins)}</small>`:""}</div>`}
+  let n=0,p=0,net=0;D.employees.forEach(e=>{const c=calc(ws,e.id);if(c.mins>0||c.adv>0){n++;net+=c.pay?c.pay.amount:c.net;if(c.pay)p++}});
+  h+=n?`<div class="cp ${p===n?"c":"p"}" onclick="wk='${ws}';go('week')">${money(net)}</div>`:`<div></div>`}
+ $("calGrid").innerHTML=h}
+
+// WhatsApp
+function weekText(){const L=[`*Semana ${weekLabel(wk)}*`,""];let tot=0;
+ D.employees.forEach(e=>{const c=calc(wk,e.id);if(!(c.mins>0||c.adv>0))return;tot+=c.net;
+  L.push(`${c.pay?"✅":"⏳"} ${e.name}: ${fmtM(c.mins)}`+(c.adv?` · ${money(c.gross)} − ${money(c.adv)} de anticipo`:"")+` = *${money(c.net)}*`)});
+ L.push("",`*Total: ${money(tot)}*`);return L.join("\n")}
+function shareWA(){window.open("https://wa.me/?text="+encodeURIComponent(weekText()),"_blank")}
+
 // Historial
 function renderHist(){const set=new Set([...D.entries,...D.advances].map(x=>weekStart(x.date)));const weeks=[...set].sort().reverse();
  $("histList").innerHTML=weeks.map(ws=>{let net=0,n=0,p=0;D.employees.forEach(e=>{const c=calc(ws,e.id);if(c.mins>0||c.adv>0){n++;net+=c.pay?c.pay.amount:c.net;if(c.pay)p++}});
   return `<div class="card e" onclick="wk='${ws}';go('week')"><div class="grow"><div class="big">${weekLabel(ws)}</div><div class="mut">${n} empleados</div></div><div style="text-align:right"><div class="amt">${money(net)}</div><span class="pill ${p===n?"c":"p"}">${p}/${n} pagados</span></div></div>`}).join("")||`<div class="empty">Aquí irán apareciendo las semanas.</div>`}
 
-function go(t){tab=t;["day","week","hist"].forEach(x=>{$("v-"+x).classList.toggle("hidden",x!==t);$("t-"+x).classList.toggle("on",x===t)});
- if(t==="day")renderDay();if(t==="week")renderWeek();if(t==="hist")renderHist();lucide.createIcons();window.scrollTo(0,0)}
+function go(t){tab=t;["day","cal","week","hist"].forEach(x=>{$("v-"+x).classList.toggle("hidden",x!==t);$("t-"+x).classList.toggle("on",x===t)});
+ if(t==="day")renderDay();if(t==="cal")renderCal();if(t==="week")renderWeek();if(t==="hist")renderHist();lucide.createIcons();window.scrollTo(0,0)}
 
 // Plantilla y ajustes
 function openEmps(){$("rateInput").value=D.settings.rate;renderEmps();$("emps").classList.remove("hidden")}
