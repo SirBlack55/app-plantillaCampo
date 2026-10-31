@@ -39,6 +39,7 @@ h1{margin:0;font-size:1.35rem;font-weight:800;letter-spacing:-.02em}
 @keyframes up{from{transform:translateY(40px);opacity:0}}
 .sheet h3{margin:0;font-size:1.15rem}.sheet .sub{color:var(--mut);font-size:.8rem;margin-bottom:12px;text-transform:capitalize}
 input{font-size:16px;width:100%;background:var(--bg);border:1.5px solid transparent;border-radius:14px;padding:12px 14px;outline:0;min-width:0}input:focus{border-color:var(--pri)}
+.mn{display:flex;align-items:center;gap:4px}.plus{font-size:.7rem;font-weight:800;color:var(--pri);background:var(--soft);padding:7px 9px;border-radius:10px;flex:none}.rm{padding:10px 12px;border-radius:12px;background:var(--bg);color:#ef4444;font-size:.78rem;font-weight:800;flex:none}.back{padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--pri);font-size:.78rem;font-weight:800;flex:none}
 .t{width:54px;text-align:center;font-weight:800;flex:none;padding:12px 4px}.tu{color:var(--mut);font-size:.78rem;font-weight:700}.tr{display:flex;align-items:center;gap:4px;flex:none}
 .st{display:flex;gap:6px;margin:0 0 14px}.st button{flex:1;padding:8px 4px;border-radius:10px;background:var(--bg);color:var(--mut);font-size:.72rem;font-weight:800}.st button.on{background:var(--soft);color:var(--pri)}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{padding:10px 14px;border-radius:99px;background:var(--bg);font-weight:700;font-size:.85rem}.chip small{color:var(--mut);font-weight:600}
@@ -83,8 +84,8 @@ label.l{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text
 </div></div>
 
 <div id="addp" class="ov hidden" onclick="if(event.target===this)closeAddP()"><div class="sheet">
- <h3>Añadir persona a este día</h3><div class="sub" id="addp-sub"></div>
- <label class="l" style="margin-top:0">Ya en la plantilla</label><div id="addp-list" class="chips"></div>
+ <h3>Añadir persona</h3>
+ <label class="l">Volver a añadir a alguien que quitaste</label><div id="addp-list" class="chips"></div>
  <label class="l">Persona nueva</label><div class="cr"><input id="newP" placeholder="Nombre"><button class="btn s" style="width:auto;padding:12px 16px" onclick="createAddP()">Añadir</button></div>
  <button class="link" onclick="closeAddP()">Cerrar</button>
 </div></div>
@@ -92,7 +93,7 @@ label.l{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;text
 <div id="emps" class="ov hidden" onclick="if(event.target===this)closeEmps()"><div class="sheet">
  <h3>Empleados y ajustes</h3>
  <label class="l">Precio por hora (para registros nuevos)</label><input id="rateInput" type="number" inputmode="decimal" onchange="setRate(this.value)">
- <label class="l">Empleados</label><div class="mut" style="margin:0 4px 10px"><b>Fijo</b>: sale siempre en Día. <b>Ocasional</b>: solo cuando lo añades ese día. <b>Archivado</b>: ya no está, pero se conserva su historial.</div><div id="empList"></div>
+ <label class="l">Empleados</label><div class="mut" style="margin:0 4px 10px">Si quitas a alguien, sus horas y pagos anteriores se conservan. Puedes volver a añadirlo cuando quieras.</div><div id="empList"></div>
  <div class="cr"><input id="newEmp" placeholder="Nombre del empleado"><button class="btn s" style="width:auto;padding:12px 16px" onclick="addEmp()">Añadir</button></div>
  <label class="l">Copia de seguridad</label>
  <div class="two"><button class="btn b" id="export-btn">Exportar</button><button class="btn g" id="import-btn">Cargar</button></div>
@@ -119,11 +120,11 @@ const split=m=>[Math.floor(m/60),m%60];
 const fmtM=m=>{const[h,r]=split(m);return h&&r?`${h}h ${pad(r)}min`:h?`${h}h`:`${r}min`};
 const amt=e=>Math.round(e.mins*e.rate*100/60)/100;
 const fixE=e=>{const m=e.mins!=null?Math.round(e.mins):Math.round((e.hours||0)*60);return{...e,mins:m,hours:m/60}};
-const fixP=e=>({...e,status:e.status||(e.active===false?"archived":"fixed")});
+const fixP=e=>({...e,status:(e.status==="archived"||e.active===false)?"archived":"fixed"});
 const st=e=>e.status||"fixed";
 function load(){try{const v=JSON.parse(localStorage.getItem("plantilla_v1"));if(v&&Array.isArray(v.employees))return{employees:v.employees.map(fixP),entries:(v.entries||[]).map(fixE),advances:v.advances||[],payments:v.payments||{},settings:v.settings||{rate:10}}}catch{}return{employees:[],entries:[],advances:[],payments:{},settings:{rate:10}}}
 let D=load();const save=()=>localStorage.setItem("plantilla_v1",JSON.stringify(D));
-let tab="day",dayDate=today(),wk=weekStart(today()),openEmp=null,dayExtra={d:"",ids:new Set()};
+let tab="day",dayDate=today(),wk=weekStart(today()),openEmp=null;
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const emp=id=>D.employees.find(e=>e.id===id);
 const getEntry=(id,d)=>D.entries.find(e=>e.empId===id&&e.date===d);
@@ -138,25 +139,26 @@ function setMins(id,date,t){const i=D.entries.findIndex(e=>e.empId===id&&e.date=
  if(!(t>0)){if(i>=0)D.entries.splice(i,1)}else if(i>=0){D.entries[i].mins=t;D.entries[i].hours=t/60}else D.entries.push({id:uid(),empId:id,date,mins:t,hours:t/60,rate:D.settings.rate});
  save();dayTotal();if(openEmp)renderEWsum();renderWeek();renderHist()}
 function tInputs(id,date){const en=getEntry(id,date),[h,m]=split(en?en.mins:0);
- return `<div class="tr"><input class="t" data-e="${id}" type="number" inputmode="numeric" min="0" max="24" placeholder="0" value="${h||""}" onchange="tCh(this,'${id}','${date}')"><span class="tu">h</span><input class="t" type="number" inputmode="numeric" min="0" placeholder="0" value="${m||""}" onchange="tCh(this,'${id}','${date}')"><span class="tu">min</span></div>`}
-function tCh(el,id,date){const[hi,mi]=el.closest(".tr").querySelectorAll("input");
- const t=Math.max(0,Math.round((parseInt(hi.value)||0)*60+(parseInt(mi.value)||0)));setMins(id,date,t);const[h,m]=split(t);hi.value=h||"";mi.value=m||""}
+ return `<div class="tr" data-id="${id}" data-d="${date}"><input class="t" data-e="${id}" type="text" inputmode="decimal" placeholder="0" value="${h||""}" onchange="tCh(this)"><span class="tu">h</span><span class="mn ${m?"":"hidden"}"><input class="t" type="text" inputmode="numeric" placeholder="0" value="${m||""}" onchange="tCh(this)"><span class="tu">min</span></span><button class="plus ${m?"hidden":""}" onclick="showMin(this)">+min</button></div>`}
+function showMin(b){const r=b.closest(".tr");r.querySelector(".mn").classList.remove("hidden");b.classList.add("hidden");r.querySelectorAll("input")[1].focus()}
+function tCh(el){const r=el.closest(".tr"),[hi,mi]=r.querySelectorAll("input"),id=r.dataset.id,date=r.dataset.d;
+ const h=parseFloat(String(hi.value).replace(",","."))||0,m=parseInt(mi.value)||0;
+ const t=Math.max(0,Math.round(h*60+m));setMins(id,date,t);const[hh,mm]=split(t);hi.value=hh||"";mi.value=mm||"";
+ if(mm){r.querySelector(".mn").classList.remove("hidden");r.querySelector(".plus").classList.add("hidden")}}
 
 // Día
-const dayEmps=()=>{if(dayExtra.d!==dayDate)dayExtra={d:dayDate,ids:new Set()};return D.employees.filter(e=>st(e)==="fixed"||getEntry(e.id,dayDate)||dayExtra.ids.has(e.id))};
+const dayEmps=()=>D.employees.filter(e=>st(e)!=="archived"||getEntry(e.id,dayDate));
 function renderDay(){$("dayLabel").textContent=fmtLong(dayDate);const act=dayEmps();
- $("dayList").innerHTML=act.map(e=>`<div class="card e"><div class="grow big">${esc(e.name)}</div>${tInputs(e.id,dayDate)}</div>`).join("")||`<div class="empty">${D.employees.length?"No hay nadie fijo hoy.<br>Usa «Añadir persona» para elegir quién ha venido.":"Empieza añadiendo a tu plantilla con el botón de abajo."}</div>`;
+ $("dayList").innerHTML=act.map(e=>`<div class="card e"><div class="grow big">${esc(e.name)}</div>${tInputs(e.id,dayDate)}</div>`).join("")||`<div class="empty">Empieza añadiendo a tu plantilla con el botón de abajo.</div>`;
  $("dayTot").classList.toggle("hidden",!act.length);dayTotal()}
 function dayTotal(){const es=D.entries.filter(e=>e.date===dayDate);$("dayTot").innerHTML=`<span class="mut">Total del día</span><b>${fmtM(es.reduce((s,e)=>s+e.mins,0))} · ${money(es.reduce((s,e)=>s+amt(e),0))}</b>`}
 function moveDay(n){dayDate=addDays(dayDate,n);renderDay()}
-// Añadir persona al día
-function openAddP(){const shown=dayEmps().map(e=>e.id),rest=D.employees.filter(e=>!shown.includes(e.id));
- $("addp-sub").textContent=fmtLong(dayDate);
- $("addp-list").innerHTML=rest.map(e=>`<button class="chip" onclick="addToDay('${e.id}')">${esc(e.name)} <small>${st(e)==="archived"?"archivado":"ocasional"}</small></button>`).join("")||`<span class="mut">No hay más personas en la plantilla.</span>`;
+function openAddP(){const rest=D.employees.filter(e=>st(e)==="archived");
+ $("addp-list").innerHTML=rest.map(e=>`<button class="chip" onclick="backToList('${e.id}')">${esc(e.name)}</button>`).join("")||`<span class="mut">No hay nadie quitado.</span>`;
  $("newP").value="";$("addp").classList.remove("hidden")}
 function closeAddP(){$("addp").classList.add("hidden")}
 function focusRow(id){renderDay();const el=document.querySelector(`#dayList [data-e="${id}"]`);if(el){el.scrollIntoView({block:"center"});el.focus()}}
-function addToDay(id){dayEmps();dayExtra.ids.add(id);closeAddP();focusRow(id)}
+function backToList(id){emp(id).status="fixed";save();closeAddP();focusRow(id)}
 function createAddP(){const n=$("newP").value.trim();if(!n)return;const e={id:uid(),name:n,status:"fixed"};D.employees.push(e);save();closeAddP();focusRow(e.id)}
 
 // Pagos de la semana
@@ -199,14 +201,13 @@ function go(t){tab=t;["day","week","hist"].forEach(x=>{$("v-"+x).classList.toggl
 // Plantilla y ajustes
 function openEmps(){$("rateInput").value=D.settings.rate;renderEmps();$("emps").classList.remove("hidden")}
 function closeEmps(){$("emps").classList.add("hidden");go(tab)}
-const ST=[["fixed","Fijo"],["occasional","Ocasional"],["archived","Archivado"]];
-function renderEmps(){$("empList").innerHTML=D.employees.map((e,i)=>`<div class="cr" style="margin-bottom:6px"><input value="${esc(e.name)}" onchange="renameEmp(${i},this.value)"><button class="sm del" onclick="delEmp(${i})"><i data-lucide="trash-2"></i></button></div><div class="st">${ST.map(([k,l])=>`<button class="${st(e)===k?"on":""}" onclick="setSt(${i},'${k}')">${l}</button>`).join("")}</div>`).join("")||`<div class="mut" style="margin-bottom:8px">Aún no hay empleados.</div>`;lucide.createIcons()}
+function renderEmps(){const row=(e,i,quit)=>`<div class="cr"><input value="${esc(e.name)}" onchange="renameEmp(${i},this.value)" ${quit?'style="opacity:.55"':""}>${quit?`<button class="back" onclick="backEmp(${i})">Volver a añadir</button>`:`<button class="rm" onclick="quitEmp(${i})">Quitar</button>`}</div>`;
+ const on=D.employees.map((e,i)=>st(e)!=="archived"?row(e,i,false):"").join(""),off=D.employees.map((e,i)=>st(e)==="archived"?row(e,i,true):"").join("");
+ $("empList").innerHTML=(on||`<div class="mut" style="margin-bottom:8px">Aún no hay empleados.</div>`)+(off?`<label class="l">Personas quitadas</label>${off}`:"")}
 function addEmp(){const n=$("newEmp").value.trim();if(!n)return;D.employees.push({id:uid(),name:n,status:"fixed"});$("newEmp").value="";save();renderEmps()}
 function renameEmp(i,v){v=v.trim();if(v)D.employees[i].name=v;save();renderEmps()}
-function setSt(i,s){D.employees[i].status=s;save();renderEmps()}
-function delEmp(i){const e=D.employees[i],has=D.entries.some(x=>x.empId===e.id)||D.advances.some(x=>x.empId===e.id);
- if(has){if(confirm(`${e.name} tiene registros, así que no se borra: se archiva y se conserva su historial. ¿Archivar?`)){e.status="archived";save();renderEmps()}}
- else if(confirm(`¿Eliminar a ${e.name}?`)){D.employees.splice(i,1);save();renderEmps()}}
+function quitEmp(i){const e=D.employees[i];if(confirm(`¿Quitar a ${e.name} de la lista? Sus horas y pagos anteriores se conservan.`)){e.status="archived";save();renderEmps()}}
+function backEmp(i){D.employees[i].status="fixed";save();renderEmps()}
 function setRate(v){const r=parseFloat(String(v).replace(",","."));if(r>0){D.settings.rate=r;save()}else $("rateInput").value=D.settings.rate}
 
 // Exportar / importar
